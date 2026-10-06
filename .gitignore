@@ -62,4 +62,4 @@ temp/
 
 # Type checking
 *.pyi
-typing_extensions/
+typing_extensions/benchmark_results.json
