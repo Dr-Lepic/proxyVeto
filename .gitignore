@@ -1,0 +1,65 @@
+PROJECT_PLAN.md
+
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# uv
+uv.lock
+
+# Distribution / packaging
+dist/
+build/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.hypothesis/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+
+# Config (local overrides)
+config.yaml
+config.local.yaml
+
+# Test artifacts
+.coverage
+htmlcov/
+.coverage.*
+
+# MCP upstream server processes (PID files)
+*.pid
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Type checking
+*.pyi
+typing_extensions/
