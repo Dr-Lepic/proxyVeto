@@ -6,6 +6,11 @@ MCP (Model Context Protocol) proxy with JEV-powered gatekeeper for tool call saf
 
 proxyVeto sits between an MCP client (Claude, Cursor, custom agents) and downstream MCP tool servers. It intercepts `tools/call` requests, evaluates them via JEV (via OpenCode Zen free API) for safety/intent, and either allows, blocks, or escalates to human-in-the-loop.
 
+## Documentation
+
+- **[User Guide](docs/USER_GUIDE.md)** — Complete usage guide with examples, configuration, and integration instructions
+- **[Project Plan](PROJECT_PLAN.md)** — Architecture, roadmap, and technical design
+
 ## Features
 
 - **MCP Proxy**: Transparent stdio/SSE proxy for MCP protocol
@@ -18,14 +23,13 @@ proxyVeto sits between an MCP client (Claude, Cursor, custom agents) and downstr
 
 ```bash
 # Install
-uv sync
+uv pip install -e .
 
-# Copy example config
-cp config.yaml.example config.yaml
-# Edit config.yaml with your settings
+# Get your free API key from https://opencode.ai/zen
+export OPENCODE_API_KEY="your-key-here"
 
-# Run proxy
-uv run proxyveto run --config config.yaml
+# Run proxy with upstream MCP server
+proxyveto run --upstream npx --upstream @modelcontextprotocol/server-filesystem --upstream /path/to/dir
 ```
 
 ## Configuration
