@@ -1,0 +1,33 @@
+# proxyVeto Configuration
+# Copy to config.yaml and customize
+
+jev:
+  endpoint: "https://api.opencode.ai/v1/decisions"  # OpenCode Zen JEV endpoint
+  model: "jev"
+  timeout_seconds: 5
+  # api_key from OPENCODE_API_KEY environment variable
+
+policy:
+  blast_radius_allow_max: 2      # Allow if blast_radius <= this (1-5 scale)
+  irreversible_prob_block: 0.85  # Block if is_irreversible.probability > this
+  compliance_prob_block: 0.15    # Block if policy_compliance.probability < this
+
+proxy:
+  transport: "stdio"             # "stdio" | "sse"
+  host: "127.0.0.1"
+  port: 8080
+  upstream_servers:
+    - name: "terminal"
+      command: ["mcp-server-terminal"]
+      args: []
+    # - name: "github"
+    #   command: ["mcp-server-github"]
+    #   args: ["--token", "${GITHUB_TOKEN}"]
+
+escalation:
+  enabled: true
+  timeout_seconds: 30
+
+logging:
+  level: "INFO"                  # DEBUG, INFO, WARNING, ERROR
+  format: "json"                 # "json" | "console"
