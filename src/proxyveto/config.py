@@ -85,3 +85,8 @@ class Config(BaseSettings):
         if isinstance(v, dict) and "api_key" not in v:
             v["api_key"] = os.getenv("OPENCODE_API_KEY")
         return v
+
+
+def load_config(path: str | Path) -> Config:
+    """Load configuration from YAML file."""
+    return Config.from_yaml(path)
