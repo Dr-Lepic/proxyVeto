@@ -333,4 +333,4 @@ interceptor = ToolCallInterceptor(
 - [OpenCode Zen](https://opencode.ai/zen) - Free JEV API access
 - [MCP Specification](https://modelcontextprotocol.io/)
 - [JEV Documentation](https://docs.typesafe.ai/)
-- [Project Plan](PROJECT_PLAN.md)
+- [Project Plan](docs/PROJECT_PLAN.md)

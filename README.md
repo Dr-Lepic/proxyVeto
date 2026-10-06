@@ -9,7 +9,7 @@ proxyVeto sits between an MCP client (Claude, Cursor, custom agents) and downstr
 ## Documentation
 
 - **[User Guide](docs/USER_GUIDE.md)** — Complete usage guide with examples, configuration, and integration instructions
-- **[Project Plan](PROJECT_PLAN.md)** — Architecture, roadmap, and technical design
+- **[Project Plan](docs/PROJECT_PLAN.md)** — Architecture, roadmap, and technical design
 
 ## Features
 
