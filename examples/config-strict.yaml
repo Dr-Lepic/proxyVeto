@@ -1,0 +1,30 @@
+# ProxyVeto Strict Configuration
+# Aggressive blocking - use for production/sensitive environments
+
+jev:
+  api_key: "${OPENCODE_API_KEY}"
+  model: "jev-1.13-free"
+  endpoint: "https://opencode.ai/zen/v1"
+  timeout_seconds: 5.0
+  max_retries: 2
+
+policy:
+  blast_radius_allow_max: 1      # Only read-only local operations
+  blast_radius_block_min: 3      # Block network read and above
+  irreversible_prob_block: 0.50  # Block if >50% chance irreversible
+  compliance_prob_block: 0.50    # Block if <50% chance compliant
+
+escalation:
+  enabled: true
+  timeout_seconds: 30.0
+  default_allow: false
+
+proxy:
+  upstream_servers:
+    - name: "filesystem-readonly"
+      command: ["npx", "@modelcontextprotocol/server-filesystem", "/path/to/readonly/dir"]
+      env: {}
+
+logging:
+  level: "INFO"
+  format: "json"

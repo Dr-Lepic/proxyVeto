@@ -1,0 +1,34 @@
+# ProxyVeto Permissive Configuration
+# Lenient blocking - use for development/trusted environments
+
+jev:
+  api_key: "${OPENCODE_API_KEY}"
+  model: "jev-1.13-free"
+  endpoint: "https://opencode.ai/zen/v1"
+  timeout_seconds: 10.0
+  max_retries: 3
+
+policy:
+  blast_radius_allow_max: 3      # Allow up to network read
+  blast_radius_block_min: 5      # Only block destructive/credential exfiltration
+  irreversible_prob_block: 0.95  # Only block if >95% chance irreversible
+  compliance_prob_block: 0.05    # Block only if <5% chance compliant
+
+escalation:
+  enabled: true
+  timeout_seconds: 60.0
+  default_allow: true
+
+proxy:
+  upstream_servers:
+    - name: "filesystem"
+      command: ["npx", "@modelcontextprotocol/server-filesystem", "/path/to/allowed/dir"]
+      env: {}
+    - name: "github"
+      command: ["npx", "@modelcontextprotocol/server-github"]
+      env:
+        GITHUB_TOKEN: "${GITHUB_TOKEN}"
+
+logging:
+  level: "DEBUG"
+  format: "console"
