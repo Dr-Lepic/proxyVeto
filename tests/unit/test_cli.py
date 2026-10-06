@@ -1,7 +1,7 @@
 import pytest
 from typer.testing import CliRunner
 
-from proxyveto.cli import app
+from proxyveto.__main__ import app
 
 
 class TestCLI:
