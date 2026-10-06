@@ -63,3 +63,4 @@ temp/
 # Type checking
 *.pyi
 typing_extensions/benchmark_results.json
+benchmark_results.json
