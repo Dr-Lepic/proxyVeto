@@ -5,6 +5,8 @@ from enum import Enum
 
 from pydantic import BaseModel, Field
 
+from proxyveto.evaluator import EvaluationResponse
+
 
 class ActionStatus(str, Enum):
     ALLOW = "allow"
@@ -31,9 +33,9 @@ class PolicyEngine:
     def __init__(self, config: PolicyConfig):
         self.config = config
 
-    def decide(self, evaluation_response) -> Decision:
+    def decide(self, evaluation_response: EvaluationResponse) -> Decision:
         """Evaluate JEV response and return policy decision."""
-        blast_radius = evaluation_response.blast_radius.score
+        blast_radius = evaluation_response.blast_radius.score or 3  # default to medium if not set
         irreversible_prob = evaluation_response.is_irreversible.probability
         compliance_prob = evaluation_response.policy_compliance.probability
 

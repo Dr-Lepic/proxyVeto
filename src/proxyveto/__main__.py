@@ -26,7 +26,7 @@ def run(
     escalation_enabled: Annotated[bool, typer.Option("--escalation/--no-escalation", help="Enable human-in-the-loop escalation")] = True,
     escalation_timeout: Annotated[float, typer.Option("--escalation-timeout", help="Escalation timeout in seconds")] = 30.0,
     log_level: Annotated[str, typer.Option("--log-level", help="Log level (DEBUG, INFO, WARNING, ERROR)")] = "INFO",
-):
+) -> None:
     """Run the ProxyVeto MCP proxy server."""
     try:
         # Load configuration
@@ -107,7 +107,7 @@ def build_config_from_cli(
 @app.command()
 def config(
     output: Annotated[str | None, typer.Option("--output", "-o", help="Output config file path")] = None,
-):
+) -> None:
     """Generate example configuration file."""
     example_config = """# ProxyVeto Configuration
 # Save as config.yaml and use with: proxyveto run --config config.yaml

@@ -57,7 +57,7 @@ class EvaluationResponse(BaseModel):
     policy_compliance: PrimitiveResult
 
     def get_primitive(self, primitive: JEVPrimitive) -> PrimitiveResult:
-        return getattr(self, primitive.value)
+        return getattr(self, primitive.value)  # type: ignore[no-any-return]
 
     def to_dict(self) -> dict[str, Any]:
         return {

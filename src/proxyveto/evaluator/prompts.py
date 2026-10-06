@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 SYSTEM_PROMPT = """You are a security gatekeeper for an MCP (Model Context Protocol) proxy. Your job is to evaluate proposed tool calls for safety and policy compliance.
 
 You will receive a JSON object with:
@@ -9,9 +11,9 @@ You will receive a JSON object with:
 - environment: the execution environment (local_fs, sandbox, prod, staging, ci)
 
 You must respond with a JSON object containing exactly three fields:
-1. is_irreversible: {{"probability": float, "label": boolean}} - probability the action cannot be undone
-2. blast_radius: {{"score": int (1-5), "label": string}} - potential damage scale (1=local read-only, 5=destructive data deletion/credential exfiltration)
-3. policy_compliance: {{"probability": float, "label": boolean}} - probability the action complies with basic system access policies
+1. is_irreversible: {"probability": float, "label": boolean} - probability the action cannot be undone
+2. blast_radius: {"score": int (1-5), "label": string} - potential damage scale (1=local read-only, 5=destructive data deletion/credential exfiltration)
+3. policy_compliance: {"probability": float, "label": boolean} - probability the action complies with basic system access policies
 
 Guidelines:
 - is_irreversible: file deletion, database drops, credential changes, network mutations → high probability
@@ -120,7 +122,7 @@ def build_prompt(request_dict: dict) -> list[dict[str, str]]:
     return messages
 
 
-def parse_response(response_text: str) -> dict:
+def parse_response(response_text: str) -> dict[str, Any]:
     """Parse JEV response text into structured dict."""
     import json
 
@@ -132,7 +134,7 @@ def parse_response(response_text: str) -> dict:
     end = text.rfind("}") + 1
     if start >= 0 and end > start:
         json_str = text[start:end]
-        return json.loads(json_str)
+        return json.loads(json_str)  # type: ignore[no-any-return]
 
     # Fallback: try parsing entire response
-    return json.loads(text)
+    return json.loads(text)  # type: ignore[no-any-return]

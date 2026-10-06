@@ -99,7 +99,7 @@ class MockEscalation:
         return self.auto_allow
 
 
-def create_escalation_handler(enabled: bool, timeout_seconds: float = 30.0, mock: bool = False):
+def create_escalation_handler(enabled: bool, timeout_seconds: float = 30.0, mock: bool = False) -> TerminalEscalation | MockEscalation:
     """Factory for creating escalation handler based on config."""
     if mock:
         return MockEscalation(auto_allow=True)

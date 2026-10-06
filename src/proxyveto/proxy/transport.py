@@ -60,14 +60,14 @@ class StdioTransport(Transport):
         if not line:
             return None
 
-        line = line.decode("utf-8").strip()
-        if not line:
+        line_str = line.decode("utf-8").strip()
+        if not line_str:
             return await self.read_message()  # Skip empty lines
 
         try:
-            return json.loads(line)
+            return json.loads(line_str)  # type: ignore[no-any-return]
         except json.JSONDecodeError as e:
-            logger.error("stdio_transport_json_decode_error", error=str(e), line=line[:200])
+            logger.error("stdio_transport_json_decode_error", error=str(e), line=line_str[:200])
             raise
 
     async def write_message(self, message: dict[str, Any]) -> None:
@@ -83,7 +83,6 @@ class StdioTransport(Transport):
         """Close the transport."""
         if self._stdout_writer:
             self._stdout_writer.close()
-            await self._stdout_writer.wait_closed()
 
 
 class MCPServerTransport(Transport):
@@ -134,14 +133,14 @@ class MCPServerTransport(Transport):
         if not line:
             return None
 
-        line = line.decode("utf-8").strip()
-        if not line:
+        line_str = line.decode("utf-8").strip()
+        if not line_str:
             return await self.read_message()
 
         try:
-            return json.loads(line)
+            return json.loads(line_str)  # type: ignore[no-any-return]
         except json.JSONDecodeError as e:
-            logger.error("mcp_server_json_decode_error", error=str(e), line=line[:200])
+            logger.error("mcp_server_json_decode_error", error=str(e), line=line_str[:200])
             raise
 
     async def write_message(self, message: dict[str, Any]) -> None:

@@ -5,10 +5,9 @@ import uuid
 from typing import Any
 
 import structlog
-
-from proxyveto.config import Config, UpstreamServerConfig
+from proxyveto.config import Config, UpstreamServerConfig, load_config
 from proxyveto.evaluator import Environment, EvaluationRequest, JEVClient, JEVClientError
-from proxyveto.escalation import create_escalation_handler
+from proxyveto.escalation import TerminalEscalation, MockEscalation, create_escalation_handler
 from proxyveto.policy import Decision, PolicyEngine, ActionStatus, PolicyConfig
 from proxyveto.proxy.transport import MCPServerTransport, StdioTransport, Transport
 
@@ -22,7 +21,7 @@ class ToolCallInterceptor:
         self,
         jev_client: JEVClient,
         policy_engine: PolicyEngine,
-        escalation_handler,
+        escalation_handler: TerminalEscalation | MockEscalation,
         environment: str = "local_fs",
     ):
         self.jev_client = jev_client
@@ -174,14 +173,17 @@ class ProxyServer:
         logger.info("tool_call_intercepted", tool_name=tool_name, msg_id=msg_id)
 
         # Evaluate via JEV
+        assert self.interceptor is not None
         decision = await self.interceptor.intercept(tool_name, arguments)
+
+        msg_id_str: str | int = msg_id if msg_id is not None else "unknown"
 
         if decision.action == ActionStatus.ALLOW:
             logger.info("tool_call_allowed", tool_name=tool_name, reason=decision.reason)
             await self._forward_to_upstream(message)
         elif decision.action == ActionStatus.BLOCK:
             logger.warning("tool_call_blocked", tool_name=tool_name, reason=decision.reason)
-            await self._send_error_response(msg_id, f"Blocked by policy: {decision.reason}")
+            await self._send_error_response(msg_id_str, f"Blocked by policy: {decision.reason}")
         else:  # ESCALATE - already handled in interceptor
             human_approved = decision.details.get("human_approved", False)
             if human_approved:
@@ -189,7 +191,7 @@ class ProxyServer:
                 await self._forward_to_upstream(message)
             else:
                 logger.warning("tool_call_denied_via_escalation", tool_name=tool_name)
-                await self._send_error_response(msg_id, f"Denied by human: {decision.reason}")
+                await self._send_error_response(msg_id_str, f"Denied by human: {decision.reason}")
 
     async def _forward_to_upstream(self, message: dict[str, Any]) -> None:
         """Forward message to appropriate upstream server."""
@@ -206,6 +208,7 @@ class ProxyServer:
         """Handle response from upstream server."""
         msg_id = message.get("id")
         # Forward response back to client
+        assert self.client_transport is not None
         await self.client_transport.write_message(message)
 
     async def _send_error_response(self, msg_id: str | int, error_message: str) -> None:
@@ -218,6 +221,7 @@ class ProxyServer:
                 "message": error_message,
             },
         }
+        assert self.client_transport is not None
         await self.client_transport.write_message(error_response)
 
     async def stop(self) -> None:
