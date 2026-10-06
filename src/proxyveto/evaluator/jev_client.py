@@ -78,7 +78,7 @@ class JEVClient:
         try:
             assert self._client is not None, "Client not initialized"
             response = await self._client.post(
-                "/decisions",  # OpenCode Zen decisions endpoint
+                "/systemone",  # OpenCode Zen System One endpoint
                 json=payload,
             )
             response.raise_for_status()
@@ -120,74 +120,96 @@ class JEVClient:
 
     def _build_payload(self, request: EvaluationRequest) -> dict[str, Any]:
         """Build the request payload for OpenCode Zen JEV endpoint."""
-        # Based on OpenCode Zen API format for decisions endpoint
+        # Based on OpenCode Zen System One API format:
+        # {
+        #   "model": "jev-1.13-free",
+        #   "state": "Tool call: execute_shell_command with args {...} and intent: List files",
+        #   "questions": {
+        #     "is_irreversible": {"type": "noul", "instructions": "Is this tool call irreversible?"},
+        #     "blast_radius": {"type": "choice", "instructions": "What is the blast radius?", "criteria": {"1": "read-only local", "2": "local write", "3": "network read", "4": "network write", "5": "destructive/credential exfiltration"}},
+        #     "policy_compliance": {"type": "noul", "instructions": "Does this comply with security policy?"}
+        #   }
+        # }
+        state = f"Tool call: {request.tool_name} with args {json.dumps(request.arguments)} and intent: {request.declared_intent} (environment: {request.environment.value})"
+        
         return {
             "model": self.config.model,
-            "messages": [
-                {
-                    "role": "user",
-                    "content": json.dumps(
-                        {
-                            "tool_name": request.tool_name,
-                            "arguments": request.arguments,
-                            "declared_intent": request.declared_intent,
-                            "environment": request.environment.value,
-                        }
-                    ),
+            "state": state,
+            "questions": {
+                "is_irreversible": {
+                    "type": "noul",
+                    "instructions": "Is this tool call irreversible? i.e., can the action be undone or rolled back?"
+                },
+                "blast_radius": {
+                    "type": "choice",
+                    "instructions": "What is the blast radius of this tool call?",
+                    "criteria": {
+                        "1": "read-only local (e.g., read file, list directory)",
+                        "2": "local write (e.g., write file, create directory)",
+                        "3": "network read (e.g., HTTP GET, DNS query)",
+                        "4": "network write (e.g., POST, PUT, DELETE, API call with side effects)",
+                        "5": "destructive/credential exfiltration (e.g., rm -rf, format disk, send secrets)"
+                    }
+                },
+                "policy_compliance": {
+                    "type": "noul",
+                    "instructions": "Does this tool call comply with security policy? Is it safe and authorized?"
                 }
-            ],
-            "temperature": 0.0,
-            "max_tokens": 500,
+            }
         }
 
     def _parse_response(self, raw: dict[str, Any]) -> EvaluationResponse:
         """Parse OpenCode Zen JEV response into structured model."""
-        # Expected response format from OpenCode Zen decisions endpoint:
+        # Expected response format from OpenCode Zen System One endpoint:
         # {
-        #   "choices": [{
-        #     "message": {
-        #       "content": "{\"is_irreversible\": {...}, \"blast_radius\": {...}, \"policy_compliance\": {...}}"
-        #     }
-        #   }]
+        #   "answers": {
+        #     "is_irreversible": {"value": true/false, "probability": 0.0-1.0, "confidence": 0.0-1.0},
+        #     "blast_radius": {"value": "1"|"2"|"3"|"4"|"5", "probabilities": {"1": 0.1, "2": 0.2, ...}, "confidence": 0.0-1.0},
+        #     "policy_compliance": {"value": true/false, "probability": 0.0-1.0, "confidence": 0.0-1.0}
+        #   }
         # }
 
-        # Extract content from first choice
-        choices = raw.get("choices", [])
-        if not choices:
-            raise JEVResponseError("No choices in JEV response")
+        answers = raw.get("answers", {})
+        if not answers:
+            raise JEVResponseError("No answers in JEV response")
 
-        message = choices[0].get("message", {})
-        content = message.get("content", "")
+        # Parse is_irreversible (noul - yes/no with probability)
+        irr = answers.get("is_irreversible", {})
+        if not irr:
+            raise JEVResponseError("Missing is_irreversible in JEV response")
+        is_irreversible = PrimitiveResult(
+            label="yes" if irr.get("value") else "no",
+            probability=float(irr.get("probability", 0.0)),
+        )
 
-        if not content:
-            raise JEVResponseError("Empty content in JEV response")
-
-        # Parse JSON from content
+        # Parse blast_radius (choice - single value with probabilities per option)
+        br = answers.get("blast_radius", {})
+        if not br:
+            raise JEVResponseError("Missing blast_radius in JEV response")
+        # Get the score from the chosen value
         try:
-            data = json.loads(content)
-        except json.JSONDecodeError as e:
-            # Try to extract JSON from markdown code blocks
-            import re
+            score = int(br.get("value", "1"))
+        except (ValueError, TypeError):
+            score = 1
+        blast_radius = PrimitiveResult(
+            label=str(score),
+            probability=float(max(br.get("probabilities", {}).values(), default=0.0)),
+            score=score,
+        )
 
-            match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", content, re.DOTALL)
-            if match:
-                try:
-                    data = json.loads(match.group(1))
-                except json.JSONDecodeError:
-                    raise JEVResponseError(f"Failed to parse JEV response JSON: {e}") from e
-            else:
-                raise JEVResponseError(f"Failed to parse JEV response JSON: {e}") from e
-
-        # Validate required fields
-        required = ["is_irreversible", "blast_radius", "policy_compliance"]
-        for field in required:
-            if field not in data:
-                raise JEVResponseError(f"Missing required field in JEV response: {field}")
+        # Parse policy_compliance (noul)
+        pc = answers.get("policy_compliance", {})
+        if not pc:
+            raise JEVResponseError("Missing policy_compliance in JEV response")
+        policy_compliance = PrimitiveResult(
+            label="yes" if pc.get("value") else "no",
+            probability=float(pc.get("probability", 0.0)),
+        )
 
         return EvaluationResponse(
-            is_irreversible=PrimitiveResult(**data["is_irreversible"]),
-            blast_radius=PrimitiveResult(**data["blast_radius"]),
-            policy_compliance=PrimitiveResult(**data["policy_compliance"]),
+            is_irreversible=is_irreversible,
+            blast_radius=blast_radius,
+            policy_compliance=policy_compliance,
         )
 
     async def evaluate_with_retry(

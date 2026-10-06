@@ -9,12 +9,13 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class JEVConfig(BaseSettings):
-    endpoint: str = "https://api.opencode.ai/v1/decisions"
-    model: str = "jev"
+    endpoint: str = "https://opencode.ai/zen/v1"
+    model: str = "jev-1.13-free"
     timeout_seconds: float = 5.0
+    max_retries: int = 2
     api_key: str | None = None
 
-    model_config = SettingsConfigDict(env_prefix="JEV_", extra="ignore")
+    model_config = SettingsConfigDict(env_file=".env", env_prefix="OPENCODE_", extra="ignore")
 
 
 class PolicyConfig(BaseSettings):
